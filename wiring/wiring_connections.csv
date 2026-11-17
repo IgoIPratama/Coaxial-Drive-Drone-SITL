@@ -1,0 +1,22 @@
+id,dari,ke,sinyal,tegangan_arus,kawat,status,sumber_1,sumber_2
+W01,Pack A (+/-),Sekering A,daya,6S sampai 25.2 V; puncak ~62 A/pack [HITUNG],AWG8 [HITUNG],CEK nilai sekering,dokumen arsitektur,uav_calc.py
+W02,Pack B (+/-),Sekering B,daya,sama dengan W01,AWG8 [HITUNG],CEK nilai sekering,dokumen arsitektur,uav_calc.py
+W03,Sekering A dan B,Titik paralel,daya,samakan tegangan pack sebelum menyambung,AWG8 [HITUNG],terverifikasi logika,dokumen arsitektur (peringatan 2 x 6S paralel bukan 12S),-
+W04,Titik paralel,Sensor arus propulsi (Mauch HS-200-LV),daya,hingga 124 A puncak (klaim vendor),AWG8 [HITUNG],CEK (D5),dokumen supplier,datasheet Mauch [CEK]
+W05,Sensor arus,PDB,daya,sama,AWG8 [HITUNG],CEK,dokumen supplier,-
+W06,PDB,ESC,daya,hingga 124 A puncak,AWG8 [HITUNG] loop 0.6 m: drop 0.153 V; rugi 19 W,ESC belum disetujui,dokumen supplier,uav_calc.py
+W07,ESC,EDF motor,3 fasa,hingga 124 A puncak,sesuai ESC/motor,CEK,dokumen supplier,datasheet EDF [CEK]
+W08,PDB,PM02 V3 (input),daya,sensing sampai 120 A; rated 60 A,bawaan modul,terverifikasi sumber,listing GetFPV PM02 V3,dokumen supplier
+W09,PM02 V3 (keluaran),Pixhawk POWER,5.2 V + analog V/I,3 A maks dari modul; port POWER maks 6 V,kabel 6-pin bawaan,terverifikasi sumber,docs.holybro.com spesifikasi 6C Mini,listing GetFPV
+W10,PDB,BEC 6.0 V (Pololu D36V50F6),daya,kapasitas arus dari datasheet [CEK],sesuai arus stall 4 servo [CEK],CEK,dokumen supplier,datasheet Pololu [CEK]
+W11,BEC 6.0 V,Pixhawk servo rail,6.0 V,rail menerima 0-36 V; MG90S maks 6.0 V,sesuai arus stall [CEK],terverifikasi sumber (rail) + CEK (pinout),docs.holybro.com spesifikasi 6C Mini,listing MG90S
+W12,Pixhawk MAIN OUT 1,Servo S1 vane depan,PWM + 6 V,sinyal 3.3 V default,kabel servo 3-kawat,terverifikasi sumber,ardupilot.org SingleCopter (Motor1 = flap depan),docs.holybro.com
+W13,Pixhawk MAIN OUT 2,Servo S2 vane kanan,PWM + 6 V,sama,kabel servo 3-kawat,terverifikasi sumber,ardupilot.org SingleCopter (Motor2 = kanan),docs.holybro.com
+W14,Pixhawk MAIN OUT 3,Servo S3 vane belakang,PWM + 6 V,sama,kabel servo 3-kawat,terverifikasi sumber,ardupilot.org SingleCopter (Motor3 = belakang),docs.holybro.com
+W15,Pixhawk MAIN OUT 4,Servo S4 vane kiri,PWM + 6 V,sama,kabel servo 3-kawat,terverifikasi sumber,ardupilot.org SingleCopter (Motor4 = kiri),docs.holybro.com
+W16,Pixhawk MAIN OUT 5,ESC (sinyal + GND),PWM 1000-2000 us,jangan sambung +5 V BEC ESC ke rail servo,kabel sinyal,terverifikasi sumber (Motor5) + CEK (jenis sinyal ESC),ardupilot.org SingleCopter (Motor5 = motor utama),datasheet ESC [CEK]
+W17,Pixhawk TELEM1 (SERIAL1),Radio telemetri MAVLink,UART 3.3 V,CEK,JST-GH 6-pin,radio BELUM dipilih,ardupilot.org Pixhawk6C (SERIAL1 = TELEM1),dokumen arsitektur (1 pasang radio)
+W18,Pixhawk TELEM2 (SERIAL2),Receiver ELRS RP1,UART 3.3 V (CRSF),SERIAL2_PROTOCOL = 23,JST-GH 6-pin,terverifikasi sumber,ardupilot.org Pixhawk6C (CRSF butuh UART),dokumen supplier (RP1)
+W19,Pixhawk GPS1 (SERIAL3),GNSS H-RTK F9P Ultralight,UART + safety switch,CEK pinout kabel,kabel GPS 10-pin [CEK],CEK,ardupilot.org Pixhawk6C (SERIAL3 = GPS1),dokumen supplier
+W20,Pixhawk GPS2 (SERIAL4),CM4 + carrier (opsional),UART MAVLink 2,fase swarm,CEK,opsional,ardupilot.org Pixhawk6C (SERIAL4 = GPS2),dokumen supplier
+W21,PDB,Pololu D36V50F5 (5 V) untuk CM4,daya,fase swarm,CEK,opsional,dokumen supplier,datasheet Pololu [CEK]

@@ -1,0 +1,28 @@
+# edf_tvc.parm - parameter awal ArduPilot untuk Single-EDF + 4 vane (SingleCopter)
+# Dipakai dengan: --add-param-file=edf_tvc.parm
+# Label: [SUMBER]=dari dokumentasi ArduPilot/Holybro, [ASUMSI]=ganti dengan data ukur, [CEK]=verifikasi pada versi firmware yang dipakai
+#
+# [SUMBER] SingleCopter = FRAME_CLASS 8, FRAME_TYPE 0 (plus)
+FRAME_CLASS 8
+FRAME_TYPE 0
+# [SUMBER] Motor1..Motor4 = vane depan/kanan/belakang/kiri, Motor5 = ESC EDF (fungsi 33..37)
+SERVO1_FUNCTION 33
+SERVO2_FUNCTION 34
+SERVO3_FUNCTION 35
+SERVO4_FUNCTION 36
+SERVO5_FUNCTION 37
+# [SUMBER] 0 = papan horizontal; 25 (Pitch270) bila papan dipasang menghadap atas
+AHRS_ORIENTATION 0
+# [CEK] baterai 2 x 2000 mAh paralel = 4000 mAh; tegangan penuh dibatasi 25.2 V (batas EDF vendor)
+BATT_CAPACITY 4000
+MOT_BAT_VOLT_MAX 25.2
+# [ASUMSI] 3.0 / 3.5 / 3.3 V per sel
+MOT_BAT_VOLT_MIN 18.0
+BATT_LOW_VOLT 21.0
+BATT_CRT_VOLT 19.8
+# [ASUMSI] fisika backend: thrust ~ (throttle)^2 dan hover pada 52.8% thrust maks (hitungan uav_calc.py)
+MOT_THST_EXPO 1.0
+MOT_THST_HOVER 0.53
+# [CEK] daya baterai simulasi SITL
+SIM_BATT_VOLTAGE 25.2
+# CATATAN: SERIAL2_PROTOCOL 23 (ELRS/CRSF) hanya untuk perangkat keras nyata, tidak diperlukan di SITL.

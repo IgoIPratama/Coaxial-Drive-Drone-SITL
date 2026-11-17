@@ -1,0 +1,69 @@
+{
+  "_status": "CAD-SEBAGIAN: massa, CG, inersia = hasil SolidWorks Mass Properties Baseline-EDF (6 part struktur + EDF + baterai di-override massanya). Masih asumsi [ASM]: kepadatan part kecil (+~0.09 kg bila dikoreksi), item non-CAD (+0.15-0.25 kg), klaim vendor EDF, parameter servo/aktuator, torsi reaksi Q0, CN vane (tanpa CFD).",
+  "_label_key": "[CAD]=wajib diisi dari SolidWorks; [DS]=datasheet; [ASM]=asumsi, ganti dengan CFD/data ukur; [HITUNG]=dari uav_calc.py",
+  "mass_kg": 2.08102,
+  "_mass_kg": "[CAD] SolidWorks Mass Properties Baseline-EDF = 2081.02 g. Part kecil (servo, Pixhawk, Pi, kaki, spar, vane, grill) masih kepadatan 1 g/cm3: koreksi ~+0.09 kg. Belum termasuk kabel/konektor/PDB/sekering/BEC/PM02/Mauch/GNSS/receiver/radio (~0.15-0.25 kg [ASM])",
+  "inertia_kgm2": [
+    0.025014,
+    0.020812,
+    0.0077557
+  ],
+  "_inertia_kgm2": "[CAD] di CG, g.mm2 x 1e-9: roll=Lyy_CAD=25.014e6, pitch=Lzz_CAD=20.812e6, yaw=Lxx_CAD=7.7557e6. Produk inersia <1% diabaikan. Peta sumbu: x_badan(depan)=+Y_CAD (vane-1), y_badan(kanan)=+Z_CAD (vane-4), z_badan(bawah)=+X_CAD",
+  "vane_lever_L_m": 0.129,
+  "_vane_lever_L_m": "[CAD] pusat vane X=+61.5 mm; CG X=-67.54 mm (SolidWorks) -> L=129.0 mm. Offset CG dari sumbu EDF ~0.45 mm",
+  "vane_radial_m": 0.033,
+  "_vane_radial_m": "[CAD] pusat vane ~32.9 mm dari sumbu bodi (sumbu di Y=11.1, Z=-9.7 mm pada koordinat SLDASM)",
+  "vane_span_m": 0.038,
+  "vane_chord_m": 0.05,
+  "_vane_dims": "[CAD] dari Vein.SLDPRT di SLDASM: bbox lokal 50 x 19.3 x 38.0 mm; terpasang: 50 mm sepanjang sumbu EDF (chord), 38 mm radial (span), tebal ~19-21 mm (termasuk boss poros?)",
+  "vane_limit_deg": 25.0,
+  "_vane_limit_deg": "[ASM] batas mekanis; ganti dengan hasil Motion Study",
+  "vane_stall_deg": 15.0,
+  "_vane_stall_deg": "[ASM] ganti dengan alpha_stall dari CFD (Fase 3). Dipakai hanya bila cn_table kosong",
+  "cn_table": null,
+  "_cn_table": "diisi oleh cn_from_cfd.py dari data/cfd_vane_table.csv; format {alpha_deg:[..], cn:[..]}",
+  "servo_full_scale_deg": 45.0,
+  "_servo_full_scale_deg": "[CEK] derajat vane untuk simpangan PWM 1000..2000 us penuh. Diasumsikan +-45 deg (skala internal servo SingleCopter ArduPilot); verifikasi di sumber kode/uji",
+  "servo_tau_s": 0.04,
+  "servo_rate_deg_s": 375.0,
+  "_servo": "[ASM] tau 0.04 s; laju maks 375 deg/s = 50% dari 750 deg/s datasheet MG90S @6 V [HITUNG]",
+  "pwm_min": 1000,
+  "pwm_max": 2000,
+  "pwm_trim": [
+    1500,
+    1500,
+    1500,
+    1500
+  ],
+  "servo_sign": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "yaw_dir": 1,
+  "_signs": "tanda hubungan PWM -> arah vane. Jangan ditebak: jalankan --mode autosign (lihat README_SITL.md)",
+  "thrust_max_N": 37.17,
+  "_thrust_max_N": "[ASM] klaim vendor 3790 gf x g; ganti dengan thrust CFD pada RPM_maks",
+  "thrust_tau_s": 0.2,
+  "_thrust_tau_s": "[ASM] konstanta waktu thrust EDF",
+  "fan_area_m2": 0.0063617,
+  "_fan_area_m2": "[HITUNG] pi/4 * 0.09^2; dipakai pada q = T/(2A) (luas keluaran = luas fan, ASUMSI)",
+  "q0_per_N": 0.0022,
+  "q0_sign": 1,
+  "_q0": "[ASM] torsi reaksi yaw residual EDF per N thrust (0.0148 N.m/N tanpa stator x 15% residual). Ganti dengan Q0 dari CFD (Torque Z pada alpha=0)",
+  "drag_cda_m2": [
+    0.044,
+    0.044,
+    0.02
+  ],
+  "rot_damping_nms": 0.001,
+  "_drag": "[ASM] hambatan badan; rotasi diberi peredam kecil",
+  "rho": 1.225,
+  "wind_ned_mps": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "_axis_map": "Output ArduPilot: SERVO1=vane-1 (+Y_CAD, depan), SERVO2=vane-4 (+Z_CAD, kanan), SERVO3=vane-3 (-Y_CAD, belakang), SERVO4=vane-2 (-Z_CAD, kiri). Dasar: vane-1 di +Y, vane-2 di -Z, vane-3 di -Y, vane-4 di +Z pada koordinat SLDASM"
+}
