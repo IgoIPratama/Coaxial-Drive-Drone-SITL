@@ -1,0 +1,177 @@
+' ======================================================================
+' snap_to_sldasm.iLogicVb
+' Memulihkan posisi terpasang semua komponen di Inventor berdasarkan transformasi
+' yang tersimpan di Final UAV.SLDASM (diekstrak ke uav_transforms.csv).
+'
+' STATUS: ditulis dari dokumentasi Inventor API; BELUM diuji di Inventor 2027 (saya tidak
+' punya Inventor). Jalankan DIAGNOSA dulu (applyChanges = False). Backup folder proyek dulu.
+'
+' CARA PAKAI
+'  1. Salin uav_transforms.csv ke folder pendek, mis. C:\UAV\ dan sesuaikan csvPath di bawah.
+'  2. Buka Final UAV.iam (jendela assembly aktif).
+'  3. Manage > iLogic > Add Rule > beri nama snap > tempel seluruh isi file ini > Save.
+'  4. Jalankan (klik kanan aturan > Run). Pada applyChanges = False hanya melapor.
+'  5. Jika laporan menunjukkan banyak komponen "berbeda", ubah applyChanges = True, jalankan lagi.
+'  6. Simpan assembly dan sub-assembly (Inventor akan menanyakan; pilih Save All).
+'
+' CATATAN
+'  - CSV memakai pemisah ; dan titik desimal (diparse dengan InvariantCulture, aman untuk
+'    pengaturan regional Indonesia). Satuan CSV: cm (satuan database Inventor).
+'  - Transformasi di CSV adalah lokal terhadap assembly induknya, jadi sub-assembly
+'    (CRM2413 assembly, MG90servo_assembly, PIXHAWK 6C MINI Assembly, Raspberry Pi 4 Model B)
+'    juga diperbaiki di dalam dokumennya sendiri.
+' ======================================================================
+Imports System.IO
+Imports System.Globalization
+Imports System.Collections.Generic
+Imports System.Text
+
+Sub Main()
+    ' ------------------------- PENGATURAN -------------------------
+    Dim csvPath As String = "C:\UAV\uav_transforms.csv"
+    Dim applyChanges As Boolean = False      ' False = diagnosa saja, True = terapkan
+    Dim tolMm As Double = 0.05               ' toleransi posisi (mm)
+    Dim groundName As String = "fan housing and base-1"   ' komponen yang di-ground di akhir
+    ' --------------------------------------------------------------
+
+    Dim doc As AssemblyDocument = TryCast(ThisApplication.ActiveDocument, AssemblyDocument)
+    If doc Is Nothing Then
+        MessageBox.Show("Buka Final UAV.iam dulu (dokumen assembly harus aktif).", "snap_to_sldasm")
+        Return
+    End If
+    If Not File.Exists(csvPath) Then
+        MessageBox.Show("CSV tidak ditemukan: " & csvPath, "snap_to_sldasm")
+        Return
+    End If
+
+    Dim inv As CultureInfo = CultureInfo.InvariantCulture
+    Dim tbl As New Dictionary(Of String, Double())
+    Dim lines() As String = File.ReadAllLines(csvPath)
+    For i As Integer = 1 To lines.Length - 1
+        If lines(i).Trim() = "" Then Continue For
+        Dim p() As String = lines(i).Split(";"c)
+        Dim v(11) As Double
+        For j As Integer = 0 To 11
+            v(j) = Double.Parse(p(5 + j), inv)
+        Next
+        tbl(p(0).ToLower() & "|" & p(1).ToLower()) = v
+    Next
+
+    Dim log As New StringBuilder()
+    Dim cnt(3) As Integer      ' 0 = cocok, 1 = berbeda, 2 = diubah, 3 = tidak ada di CSV
+    Dim visited As New HashSet(Of String)
+    visited.Add("final uav")
+
+    ProcessAsm(doc.ComponentDefinition, "Final UAV", tbl, applyChanges, tolMm, log, cnt, visited)
+
+    If applyChanges Then
+        For Each occ As ComponentOccurrence In doc.ComponentDefinition.Occurrences
+            If CleanName(occ.Name) = groundName Then
+                Try
+                    occ.Grounded = True
+                    log.AppendLine("Ground: " & occ.Name)
+                Catch ex As Exception
+                    log.AppendLine("Gagal ground " & occ.Name & ": " & ex.Message)
+                End Try
+            End If
+        Next
+        doc.Update()
+        ThisApplication.ActiveView.Fit()
+    End If
+
+    Dim logPath As String = Path.Combine(Path.GetDirectoryName(csvPath), "snap_log.txt")
+    File.WriteAllText(logPath, log.ToString())
+    Dim msg As String = "Mode: " & If(applyChanges, "TERAPKAN", "DIAGNOSA") & vbCrLf &
+        "Cocok (selisih <= " & tolMm & " mm): " & cnt(0) & vbCrLf &
+        "Berbeda: " & cnt(1) & vbCrLf &
+        "Diubah: " & cnt(2) & vbCrLf &
+        "Nama tidak ada di CSV: " & cnt(3) & vbCrLf &
+        "Log: " & logPath
+    MessageBox.Show(msg, "snap_to_sldasm")
+End Sub
+
+Function CleanName(n As String) As String
+    Dim s As String = n
+    If s.StartsWith("[") Then
+        Dim i As Integer = s.IndexOf("]:")
+        If i > 0 Then s = s.Substring(i + 2)
+    End If
+    Dim c As Integer = s.LastIndexOf(":")
+    If c > 0 Then s = s.Substring(0, c) & "-" & s.Substring(c + 1)
+    Return s.Trim().ToLower()
+End Function
+
+Function ProbeDistMm(a As Matrix, b As Matrix) As Double
+    ' selisih terbesar posisi 4 titik uji (0,0,0), (5,0,0), (0,5,0), (0,0,5) cm setelah ditransformasi
+    Dim tg As TransientGeometry = ThisApplication.TransientGeometry
+    Dim px() As Double = {0, 5, 0, 0}
+    Dim py() As Double = {0, 0, 5, 0}
+    Dim pz() As Double = {0, 0, 0, 5}
+    Dim worst As Double = 0
+    For k As Integer = 0 To 3
+        Dim p1 As Point = tg.CreatePoint(px(k), py(k), pz(k))
+        Dim p2 As Point = tg.CreatePoint(px(k), py(k), pz(k))
+        p1.TransformBy(a)
+        p2.TransformBy(b)
+        Dim d As Double = p1.DistanceTo(p2) * 10.0
+        If d > worst Then worst = d
+    Next
+    Return worst
+End Function
+
+Sub ProcessAsm(asmDef As AssemblyComponentDefinition, asmKey As String,
+               tbl As Dictionary(Of String, Double()), applyChanges As Boolean, tolMm As Double,
+               log As StringBuilder, cnt() As Integer, visited As HashSet(Of String))
+    Dim tg As TransientGeometry = ThisApplication.TransientGeometry
+    log.AppendLine("=== Assembly: " & asmKey & " (" & asmDef.Occurrences.Count & " komponen) ===")
+    For Each occ As ComponentOccurrence In asmDef.Occurrences
+        Dim key As String = asmKey.ToLower() & "|" & CleanName(occ.Name)
+        If tbl.ContainsKey(key) Then
+            Dim v() As Double = tbl(key)
+            Dim m As Matrix = tg.CreateMatrix()
+            m.SetCoordinateSystem(tg.CreatePoint(v(0), v(1), v(2)),
+                                  tg.CreateVector(v(3), v(4), v(5)),
+                                  tg.CreateVector(v(6), v(7), v(8)),
+                                  tg.CreateVector(v(9), v(10), v(11)))
+            Dim d As Double = ProbeDistMm(occ.Transformation, m)
+            If d <= tolMm Then
+                cnt(0) += 1
+            Else
+                cnt(1) += 1
+                log.AppendLine("BERBEDA " & Format(d, "0.00") & " mm : " & occ.Name)
+                If applyChanges Then
+                    Try
+                        If occ.Grounded Then occ.Grounded = False
+                    Catch
+                    End Try
+                    Try
+                        occ.SetTransformWithoutConstraints(m)
+                        cnt(2) += 1
+                    Catch ex1 As Exception
+                        Try
+                            occ.Transformation = m
+                            cnt(2) += 1
+                        Catch ex2 As Exception
+                            log.AppendLine("   GAGAL ubah: " & ex2.Message)
+                        End Try
+                    End Try
+                End If
+            End If
+        Else
+            cnt(3) += 1
+            log.AppendLine("TIDAK ADA di CSV: " & occ.Name & "  (kunci dicari: " & key & ")")
+        End If
+
+        If occ.DefinitionDocumentType = DocumentTypeEnum.kAssemblyDocumentObject Then
+            Dim subKey As String = ""
+            Try
+                subKey = Path.GetFileNameWithoutExtension(CType(occ.Definition.Document, Document).FullFileName)
+            Catch
+            End Try
+            If subKey <> "" AndAlso Not visited.Contains(subKey.ToLower()) Then
+                visited.Add(subKey.ToLower())
+                ProcessAsm(CType(occ.Definition, AssemblyComponentDefinition), subKey, tbl, applyChanges, tolMm, log, cnt, visited)
+            End If
+        End If
+    Next
+End Sub
